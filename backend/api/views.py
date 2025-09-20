@@ -37,3 +37,4 @@ def get_initial_cloth_items(request):
     items = ClothItem.objects.all()[:10]
     serializer = ClothItemSerializer(items, many=True)
     return Response(serializer.data)
+
