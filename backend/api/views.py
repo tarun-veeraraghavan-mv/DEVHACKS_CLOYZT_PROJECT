@@ -97,7 +97,7 @@ def swipe(request):
     alpha = 0.15
 
     fetch_response = index.fetch(ids=[f"item_{item_id}"])
-    item_vector = fetch_response.vectors[f"item_{item_id}"]
+    item_vector_data = fetch_response.vectors[f"item_{item_id}"].values
 
     if direction == "right":
         item.like_count += 1
@@ -106,6 +106,11 @@ def swipe(request):
         item.dislike_count += 1
         dir_val = -1
 
-    user.user_vector = (1 - alpha) * user.user_vector + alpha * dir_val * item_vector
+    user_vector_tensor = torch.tensor(user.user_vector, dtype=torch.float32)
+    item_vector_tensor = torch.tensor(item_vector_data, dtype=torch.float32)
+
+    new_user_vector_tensor = (1 - alpha) * user_vector_tensor + alpha * dir_val * item_vector_tensor
+    user.user_vector = new_user_vector_tensor.tolist()
+    user.save()
 
     return Response({"message": "Swipe recorded."}, status=status.HTTP_200_OK)
