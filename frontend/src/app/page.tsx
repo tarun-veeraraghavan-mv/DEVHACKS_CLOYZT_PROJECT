@@ -14,7 +14,7 @@ export default function Home() {
           Create User
         </Link>
         <Link
-          href="/search-cloths"
+          href="/cloths/search"
           className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
         >
           Search Cloths

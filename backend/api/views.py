@@ -100,10 +100,10 @@ def swipe(request):
     item_vector = fetch_response.vectors[f"item_{item_id}"]
 
     if direction == "right":
-        item.likes += 1
+        item.like_count += 1
         dir_val = 1
     else:
-        item.dislikes += 1
+        item.dislike_count += 1
         dir_val = -1
 
     user.user_vector = (1 - alpha) * user.user_vector + alpha * dir_val * item_vector
