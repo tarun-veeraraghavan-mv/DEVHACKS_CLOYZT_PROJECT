@@ -34,7 +34,7 @@ export default function Page() {
         const formattedData = data.map((item: any) => ({
           id: item.id,
           name: item.name,
-          price: item.price,
+          price: Number(item.price),
           image_url: item.image_url,
           colors_available: item.colors_available,
           like_count: item.like_count,
@@ -59,7 +59,7 @@ export default function Page() {
 
       console.log("New item received:", newItem);
       if (newItem && newItem.id) {
-        setCharacters((prev) => [...prev, newItem]);
+        setCharacters((prev) => [...prev, { ...newItem, price: Number(newItem.price) }]);
       }
     } catch (error) {
       console.error("Error sending swipe request:", error);
@@ -98,46 +98,71 @@ export default function Page() {
             onCardLeftScreen={() => outOfFrame(character.name)}
           >
             <div
+              className="card"
               style={{
+                position: "relative",
+                width: "350px",
+                height: "500px",
+                backgroundImage: `url(${character.image_url})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                borderRadius: "20px",
+                boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.2)",
                 display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: "column",
+                justifyContent: "space-between",
               }}
             >
-              <div
-                style={{
-                  backgroundImage: `url(${character.image_url})`,
-                  flex: 1,
-                }}
-                className="card"
-              >
-                <h3>{character.name}</h3>
-              </div>
               <div
                 className="counts-container"
                 style={{
                   display: "flex",
-                  flexDirection: "column",
-                  marginLeft: "10px",
+                  justifyContent: "space-around",
+                  padding: "10px",
+                  backgroundColor: "rgba(0, 0, 0, 0.4)",
+                  borderTopLeftRadius: "20px",
+                  borderTopRightRadius: "20px",
+                  color: "white",
                 }}
               >
                 <div
                   className="like-count"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginBottom: "5px",
-                  }}
+                  style={{ display: "flex", alignItems: "center" }}
                 >
-                  <AiFillLike size={24} color="green" /> {character.like_count}
+                  <AiFillLike size={24} color="lightgreen" />
+                  <span style={{ marginLeft: "5px" }}>
+                    {character.like_count}
+                  </span>
                 </div>
                 <div
                   className="dislike-count"
                   style={{ display: "flex", alignItems: "center" }}
                 >
-                  <AiFillDislike size={24} color="red" />{" "}
-                  {character.dislike_count}
+                  <AiFillDislike size={24} color="lightcoral" />
+                  <span style={{ marginLeft: "5px" }}>
+                    {character.dislike_count}
+                  </span>
                 </div>
+              </div>
+              <div
+                className="details-container"
+                style={{
+                  padding: "15px",
+                  backgroundColor: "rgba(0, 0, 0, 0.6)",
+                  color: "white",
+                  borderBottomLeftRadius: "20px",
+                  borderBottomRightRadius: "20px",
+                }}
+              >
+                <h3 style={{ margin: "0 0 5px 0", fontSize: "1.5rem" }}>
+                  {character.name}
+                </h3>
+                <p style={{ margin: "0 0 5px 0", fontSize: "1.1rem" }}>
+                  Price: ${character.price.toFixed(2)}
+                </p>
+                <p style={{ margin: 0, fontSize: "1rem" }}>
+                  Colors: {character.colors_available}
+                </p>
               </div>
             </div>
           </TinderCard>

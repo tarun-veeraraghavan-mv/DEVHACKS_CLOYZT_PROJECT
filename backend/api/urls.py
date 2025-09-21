@@ -8,6 +8,6 @@ urlpatterns = [
     path("create-user/", create_user),
     path("swipe/", swipe),
     path("waitlist/", add_to_waitlist),
-    path("waitlist/<int:user_id>/", get_waitlist_items),
+    path("waitlist/user/<int:user_id>/", get_waitlist_items),
     path("waitlist/<int:waitlist_id>/", remove_from_waitlist),
 ]
