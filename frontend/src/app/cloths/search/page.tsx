@@ -48,14 +48,19 @@ export default function Page() {
 
   const handleSwipe = async (itemId: number, direction: "left" | "right") => {
     try {
-      const { data } = await axios.post(`${BASE_URL}/api/swipe/`, {
-        item_id: itemId,
-        user_id: 5,
-        direction: direction,
-      });
+      const { data: newItem } = await axios.post<ClothItem>(
+        `${BASE_URL}/api/swipe/`,
+        {
+          item_id: itemId,
+          user_id: 6,
+          direction: direction,
+        }
+      );
 
-      console.log("Swipe recorded:", data);
-      // Optionally, update the UI or fetch new items after a successful swipe
+      console.log("New item received:", newItem);
+      if (newItem && newItem.id) {
+        setCharacters((prev) => [...prev, newItem]);
+      }
     } catch (error) {
       console.error("Error sending swipe request:", error);
     }
@@ -63,7 +68,7 @@ export default function Page() {
 
   const swiped = (direction: string, itemId: number, nameToDelete: string) => {
     console.log("removing: " + nameToDelete);
-    console.log("swiped: " + direction);
+    setCharacters((prev) => prev.filter((c) => c.id !== itemId));
     handleSwipe(itemId, direction === "right" ? "right" : "left");
   };
 
@@ -78,7 +83,7 @@ export default function Page() {
         {characters.map((character) => (
           <TinderCard
             className="swipe"
-            key={character.name}
+            key={character.id}
             onSwipe={(dir) => {
               console.log(
                 "swiped " +

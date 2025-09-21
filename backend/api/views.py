@@ -99,9 +99,13 @@ def swipe(request):
     
 
     alpha = 0.15
+    lmbda = 0.01 # regularization parameter
 
     fetch_response = index.fetch(ids=[f"{item_id}"])
     item_vector_data = fetch_response.vectors[f"{item_id}"].values
+
+    user_vector_tensor = torch.tensor(user.user_vector, dtype=torch.float32)
+    item_vector_tensor = torch.tensor(item_vector_data, dtype=torch.float32)
 
     if direction == "right":
         item.like_count += 1
@@ -109,20 +113,31 @@ def swipe(request):
     else:
         item.dislike_count += 1
         dir_val = -1
-
-    user_vector_tensor = torch.tensor(user.user_vector, dtype=torch.float32)
-    item_vector_tensor = torch.tensor(item_vector_data, dtype=torch.float32)
-
-    new_user_vector_tensor = (1 - alpha) * user_vector_tensor + alpha * dir_val * item_vector_tensor
+    
+    # Calculate predicted rating (dot product)
+    predicted_rating = torch.dot(user_vector_tensor, item_vector_tensor)
+    
+    # Calculate error
+    error = dir_val - predicted_rating
+    
+    # SGD update rule
+    new_user_vector_tensor = user_vector_tensor + alpha * (error * item_vector_tensor - lmbda * user_vector_tensor)
+    
     user.user_vector = new_user_vector_tensor.tolist()
     user.save()
 
-    related_item = index.query(
+    related_items = index.query(
         vector=user.user_vector,
-        top_k=1,
+        top_k=10, # get more items
         include_metadata=True,
-        filter={"id": {"$nin": [str(i) for i in user.swiped_items]}},
     )
-    print(related_item)
+    print(related_items)
 
-    return Response({"message": "Swipe recorded."}, status=status.HTTP_200_OK)
+    swiped_items_str = [str(i) for i in user.swiped_items]
+    for match in related_items.get("matches", []):
+        if match.get("id") not in swiped_items_str:
+            # Found an item that has not been swiped
+            # Now, I also need to return this item in the response
+            return Response(match.get("metadata"), status=status.HTTP_200_OK)
+
+    return Response({"message": "No new items to recommend."}, status=status.HTTP_404_NOT_FOUND)
