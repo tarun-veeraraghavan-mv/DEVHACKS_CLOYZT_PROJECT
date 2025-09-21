@@ -7,8 +7,8 @@ import torch
 from PIL import Image
 from torchvision import transforms
 from transformers import CLIPModel, CLIPProcessor
-from .models import ClothItem, UserProfile
-from .serializers import ClothItemSerializer
+from .models import ClothItem, UserProfile, Waitlist
+from .serializers import ClothItemSerializer, WaitlistSerializer
 from django.contrib.auth.hashers import make_password
 from rest_framework import status
 
@@ -159,3 +159,39 @@ def swipe(request):
 
     # Final fallback if exploitation also fails
     return Response({"message": "No new items to recommend."}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(["POST"])
+def add_to_waitlist(request):
+    """
+    Add a user to the waitlist for a cloth item.
+    """
+    serializer = WaitlistSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["DELETE"])
+def remove_from_waitlist(request, waitlist_id):
+    """
+    Remove a user from the waitlist for a cloth item.
+    """
+    try:
+        waitlist_entry = Waitlist.objects.get(id=waitlist_id)
+        waitlist_entry.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Waitlist.DoesNotExist:
+        return Response({"error": "Waitlist entry not found."}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(["GET"])
+def get_waitlist_items(request, user_id):
+    """
+    Get all waitlist items for a user.
+    """
+    try:
+        waitlist_items = Waitlist.objects.filter(user_id=user_id)
+        cloth_items = [item.cloth_item for item in waitlist_items]
+        serializer = ClothItemSerializer(cloth_items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except UserProfile.DoesNotExist:
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)

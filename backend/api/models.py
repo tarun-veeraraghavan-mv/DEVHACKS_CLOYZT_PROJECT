@@ -13,3 +13,8 @@ class ClothItem(models.Model):
     colors_available = models.TextField()
     like_count = models.IntegerField(default=0)
     dislike_count = models.IntegerField(default=0)
+
+class Waitlist(models.Model):
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    cloth_item = models.ForeignKey(ClothItem, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)

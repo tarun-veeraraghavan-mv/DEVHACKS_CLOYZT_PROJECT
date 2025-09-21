@@ -22,34 +22,41 @@ To create a rich, nuanced representation of each clothing item, the engine combi
 
 The result is a `combined_vector` that holistically represents the item, allowing the engine to understand the difference between a cheap, white t-shirt from one brand and an expensive, white blouse from another.
 
-## 3. The Learning Mechanism: Adapting to Swipes
+## 3. The Learning Mechanism: Real-time Style Adaptation via SGD
 
-The engine learns a user's style in real-time with every swipe. This is achieved by updating the `user_vector` using a well-established formula that incorporates a learning rate.
+The engine learns a user's style in real-time with every swipe using an online learning approach with **Stochastic Gradient Descent (SGD)**. Instead of just averaging vectors, this method treats the recommendation as a modeling problem, actively trying to minimize the error between its predictions and the user's actions.
 
-The formula is:
-**`updated_user_vector = (1 - alpha) * current_user_vector + alpha * direction * item_vector`**
+The process for each swipe is as follows:
 
-Where:
--   `current_user_vector`: The user's existing style profile.
--   `item_vector`: The vector of the item the user just swiped on.
--   `direction`: **+1** for a "like" (swipe right) and **-1** for a "dislike" (swipe left).
--   `alpha` (Learning Rate): A parameter that controls how much a single swipe influences the user's profile. A higher alpha means preferences change more quickly.
+1.  **Predict Preference**: The system first predicts how much the user will like an item by calculating the dot product of the user and item vectors.
+    - `predicted_rating = dot(user_vector, item_vector)`
 
-When a user likes an item, their `user_vector` is pulled slightly closer to that `item_vector`. When they dislike an item, it's pushed away. This allows the user's profile to continuously evolve, adapting to their changing tastes.
+2.  **Calculate Error**: It then measures the error between the prediction and the user's actual swipe (where a "like" is `+1` and a "dislike" is `-1`).
+    - `error = actual_rating - predicted_rating`
 
-## 4. Recommendation Generation: Balancing Exploitation & Exploration
+3.  **Update User Vector**: Finally, it updates the user's vector using the SGD update rule, which pushes the vector in a direction that minimizes the error.
+    - `new_user_vector = user_vector + alpha * (error * item_vector - lambda * user_vector)`
 
-A successful recommendation feed must balance showing users what they want with helping them discover new things.
+The parameters are:
+-   `alpha` (Learning Rate): Controls how large of a step to take in updating the vector.
+-   `lambda` (Regularization): A parameter that prevents the user's vector from growing too large and overfitting to recent items.
 
--   **Exploitation**: To show users items similar to what they've liked, the system uses the updated `user_vector` to query a vector database (like FAISS or Pinecone). The database performs a nearest neighbor search to find and return the `item_vectors` that are most similar (closest) to the user's profile.
--   **Exploration**: To prevent the feed from becoming repetitive, the engine introduces novelty. A certain percentage of the recommendations (e.g., 20%) are reserved for items that are not necessarily a close match but are sampled from a wider, more random pool. This is the key to surfacing unexpected styles and keeping the experience "addictive."
+This method is more powerful than simple averaging because it's a true learning rule that actively builds a predictive model of a user's taste.
+
+## 4. Recommendation Generation: A Hybrid Approach
+
+The engine uses a hybrid strategy that explicitly combines exploration and exploitation to ensure the feed is both relevant and surprising.
+
+-   **Exploration (20% Chance)**: With a 20% probability on any given swipe, the system enters **"discovery mode."** It bypasses the complex recommendation logic and instead fetches a completely random item that the user has never seen before. This is crucial for serendipity, preventing the user from getting stuck in a "filter bubble" and keeping the experience fresh.
+
+-   **Exploitation (80% Chance)**: For the other 80% of cases, the system **exploits the user's learned preferences**. It takes the newly updated `user_vector` and queries the Pinecone vector database for the **top 150 items** that are most similar. It then filters this list to remove any items the user has already swiped on, guaranteeing the recommended item is new to them. Using a large search pool (`top_k=150`) makes this process highly robust and ensures a virtually infinite feed of personalized content.
 
 ## 5. Preference Balancing: Long-Term Style vs. Short-Term Swipes
 
 The system is designed to learn broad preferences without overreacting to a single action.
 
--   **Short-Term Adaptability**: A swipe right on a teal mini-dress will immediately increase the likelihood of seeing similar dresses.
--   **Long-Term Learning**: One "dislike" on a red dress won't banish the color forever. However, if the user consistently dislikes red items, their `user_vector` will gradually drift away from the "red" region of the vector space, making such recommendations less frequent over time. The system learns the user's broader style by aggregating their interactions.
+-   **Short-Term Adaptability**: A swipe right on a teal mini-dress will immediately influence the `user_vector`, increasing the likelihood of seeing similar dresses.
+-   **Long-Term Learning**: One "dislike" on a red dress won't banish the color forever. However, as the user consistently dislikes red items, the SGD learning rule will continuously update the `user_vector`, pushing it away from the "red" region of the vector space and making such recommendations less frequent over time.
 
 ## 6. Future Enhancements & Innovation
 
