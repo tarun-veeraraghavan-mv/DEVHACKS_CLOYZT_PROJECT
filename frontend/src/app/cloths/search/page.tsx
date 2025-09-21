@@ -22,12 +22,9 @@ export default function Page() {
   const { user } = useUser();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
+  console.log(user);
 
+  useEffect(() => {
     fetch("http://127.0.0.1:8000/api/get-initial-cloth-items/")
       .then((res) => res.json())
       .then((data) => {
@@ -44,6 +41,12 @@ export default function Page() {
       });
   }, [user, router]);
 
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, router]);
+
   const BASE_URL = "http://127.0.0.1:8000"; // Assuming your backend is running on this URL
 
   const handleSwipe = async (itemId: number, direction: "left" | "right") => {
@@ -52,17 +55,41 @@ export default function Page() {
         `${BASE_URL}/api/swipe/`,
         {
           item_id: itemId,
-          user_id: 7,
+          user_id: Number(user?.id),
           direction: direction,
         }
       );
 
       console.log("New item received:", newItem);
       if (newItem && newItem.id) {
-        setCharacters((prev) => [...prev, { ...newItem, price: Number(newItem.price) }]);
+        setCharacters((prev) => [
+          ...prev,
+          { ...newItem, price: Number(newItem.price) },
+        ]);
       }
     } catch (error) {
       console.error("Error sending swipe request:", error);
+    }
+  };
+
+  const handleAddToWaitlist = async (clothItemId: number) => {
+    if (!user || !user.id) {
+      console.error("User not logged in or user ID not available.");
+      router.push("/login");
+      return;
+    }
+
+    console.log("Button clicked");
+
+    try {
+      await axios.post(`${BASE_URL}/api/waitlist/`, {
+        user: user.id,
+        cloth_item: clothItemId,
+      });
+      alert("Item added to waitlist!");
+    } catch (error) {
+      console.error("Error adding item to waitlist:", error);
+      alert("Failed to add item to waitlist.");
     }
   };
 
@@ -78,7 +105,16 @@ export default function Page() {
 
   return (
     <div>
-      <h1>Clozyt</h1>
+      <p
+        style={{
+          textAlign: "center",
+          margin: "20px",
+          fontStyle: "italic",
+          color: "#666",
+        }}
+      >
+        Right swipe to like a post and left to dislike a post.
+      </p>
       <div className="cardContainer">
         {characters.map((character) => (
           <TinderCard
@@ -154,15 +190,37 @@ export default function Page() {
                   borderBottomRightRadius: "20px",
                 }}
               >
-                <h3 style={{ margin: "0 0 5px 0", fontSize: "1.5rem" }}>
+                <h3
+                  style={{
+                    margin: "0 0 8px 0",
+                    fontSize: "1.4rem",
+                    lineHeight: "1.2",
+                    wordWrap: "break-word",
+                  }}
+                >
                   {character.name}
                 </h3>
-                <p style={{ margin: "0 0 5px 0", fontSize: "1.1rem" }}>
-                  Price: ${character.price.toFixed(2)}
+                <p style={{ margin: "0 0 8px 0", fontSize: "1.1rem" }}>
+                  {typeof character.price === "number" &&
+                  !isNaN(character.price)
+                    ? `Price: ${character.price.toFixed(2)}`
+                    : "Price: N/A"}
                 </p>
-                <p style={{ margin: 0, fontSize: "1rem" }}>
-                  Colors: {character.colors_available}
-                </p>
+                <button
+                  onClick={() => handleAddToWaitlist(character.id)}
+                  style={{
+                    backgroundColor: "#4CAF50",
+                    color: "white",
+                    padding: "10px 15px",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    fontSize: "1rem",
+                    marginTop: "10px",
+                  }}
+                >
+                  Add to Waitlist
+                </button>
               </div>
             </div>
           </TinderCard>

@@ -8,7 +8,7 @@ from PIL import Image
 from torchvision import transforms
 from transformers import CLIPModel, CLIPProcessor
 from .models import ClothItem, UserProfile, Waitlist
-from .serializers import ClothItemSerializer, WaitlistSerializer
+from .serializers import ClothItemSerializer, WaitlistSerializer, UserProfileSerializer
 from django.contrib.auth.hashers import make_password
 from rest_framework import status
 
@@ -26,27 +26,11 @@ index = pc.Index(index_name)
 
 @api_view(["POST"])
 def create_user(request):
-    """
-    Create a new user profile.
-    """
-    email = request.data.get("email")
-    password = request.data.get("password")
-
-    if not email or not password:
-        return Response(
-            {"error": "Email and password are required."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    try:
-        hashed_password = make_password(password)
-        user_vector = [0] * 2049
-        UserProfile.objects.create(
-            email=email, password=hashed_password, user_vector=user_vector
-        )
-        return Response({"message": "User created successfully."}, status=status.HTTP_201_CREATED)
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    serializer = UserProfileSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response(UserProfileSerializer(user).data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["GET"])
 def hello(request):
@@ -114,6 +98,7 @@ def swipe(request):
     else:
         item.dislike_count += 1
         dir_val = -1
+    item.save()
     
     # Calculate predicted rating (dot product)
     predicted_rating = torch.dot(user_vector_tensor, item_vector_tensor)
@@ -154,8 +139,16 @@ def swipe(request):
     for match in related_items.get("matches", []):
         if match.get("id") not in swiped_items_str:
             # Found an item that has not been swiped
-            # Now, I also need to return this item in the response
-            return Response(match.get("metadata"), status=status.HTTP_200_OK)
+            try:
+                item_id = int(match.get("id"))
+                fresh_item = ClothItem.objects.get(id=item_id)
+                serializer = ClothItemSerializer(fresh_item)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except (ClothItem.DoesNotExist, ValueError):
+                # This can happen if Pinecone index is out of sync with DB,
+                # or if the ID is not a valid integer.
+                # In this case, we just continue to the next match.
+                continue
 
     # Final fallback if exploitation also fails
     return Response({"message": "No new items to recommend."}, status=status.HTTP_404_NOT_FOUND)
@@ -189,7 +182,8 @@ def get_waitlist_items(request, user_id):
     Get all waitlist items for a user.
     """
     try:
-        waitlist_items = Waitlist.objects.filter(user_id=user_id)
+        user = UserProfile.objects.get(id=user_id)
+        waitlist_items = Waitlist.objects.filter(user=user)
         cloth_items = [item.cloth_item for item in waitlist_items]
         serializer = ClothItemSerializer(cloth_items, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

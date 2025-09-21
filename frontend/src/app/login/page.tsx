@@ -28,6 +28,8 @@ export default function CreateUserPage() {
         password,
       });
 
+      console.log(res);
+
       // Assuming the API returns user data including an ID upon successful creation/login
       const userData = {
         id: res.data.id, // Adjust according to your API response
