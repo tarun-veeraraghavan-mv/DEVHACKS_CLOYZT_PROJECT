@@ -130,7 +130,7 @@ def swipe(request):
     # EXPLOITATION LOGIC (the original approach, but more robust)
     related_items = index.query(
         vector=user.user_vector,
-        top_k=150,  # Keep existing larger top_k for a bigger candidate pool
+        top_k=200,  # Keep existing larger top_k for a bigger candidate pool
         include_metadata=True,
     )
     print(related_items)

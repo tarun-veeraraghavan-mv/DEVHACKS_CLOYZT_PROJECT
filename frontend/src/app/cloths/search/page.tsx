@@ -21,6 +21,8 @@ export default function Page() {
   const [characters, setCharacters] = useState<ClothItem[]>([]);
   const { user } = useUser();
   const router = useRouter();
+  const [showWaitlist, setShowWaitlist] = useState(false);
+  const [waitlistItems, setWaitlistItems] = useState<ClothItem[]>([]);
 
   console.log(user);
 
@@ -48,6 +50,34 @@ export default function Page() {
   }, [user, router]);
 
   const BASE_URL = "http://127.0.0.1:8000"; // Assuming your backend is running on this URL
+
+  const fetchWaitlistItems = async () => {
+    if (!user || !user.id) {
+      console.error("User not logged in or user ID not available.");
+      router.push("/login");
+      return;
+    }
+    try {
+      const response = await axios.get<ClothItem[]>(
+        `${BASE_URL}/api/waitlist/user/${user.id}/`
+      );
+      const formattedData = response.data.map((item: any) => ({
+        ...item,
+        price: Number(item.price),
+      }));
+      setWaitlistItems(formattedData);
+    } catch (error) {
+      console.error("Error fetching waitlist items:", error);
+      alert("Failed to fetch waitlist items.");
+    }
+  };
+
+  const handleToggleWaitlist = () => {
+    if (!showWaitlist) {
+      fetchWaitlistItems();
+    }
+    setShowWaitlist(!showWaitlist);
+  };
 
   const handleSwipe = async (itemId: number, direction: "left" | "right") => {
     try {
@@ -105,6 +135,69 @@ export default function Page() {
 
   return (
     <div>
+      <button
+        onClick={handleToggleWaitlist}
+        style={{
+          backgroundColor: "#007bff",
+          color: "white",
+          padding: "10px 20px",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+          fontSize: "1rem",
+          margin: "20px auto",
+          display: "block",
+        }}
+      >
+        {showWaitlist ? "Hide Waitlist" : "See All Your Waitlist Products"}
+      </button>
+
+      {showWaitlist && (
+        <div style={{ margin: "20px", textAlign: "center" }}>
+          <h2>Your Waitlist</h2>
+          {waitlistItems.length === 0 ? (
+            <p>No items in your waitlist.</p>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                gap: "20px",
+                justifyContent: "center",
+              }}
+            >
+              {waitlistItems.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    border: "1px solid #ddd",
+                    borderRadius: "10px",
+                    padding: "15px",
+                    textAlign: "left",
+                    boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)",
+                  }}
+                >
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    style={{
+                      width: "100%",
+                      height: "200px",
+                      objectFit: "cover",
+                      borderRadius: "5px",
+                      marginBottom: "10px",
+                    }}
+                  />
+                  <h3>{item.name}</h3>
+                  <p>Price: ${item.price.toFixed(2)}</p>
+                  <p>Colors: {item.colors_available}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <p
         style={{
           textAlign: "center",
