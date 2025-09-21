@@ -6,8 +6,34 @@ import torch
 from PIL import Image
 from torchvision import transforms
 from transformers import CLIPModel, CLIPProcessor
-from .models import ClothItem
+from .models import ClothItem, UserProfile
 from .serializers import ClothItemSerializer
+from django.contrib.auth.hashers import make_password
+from rest_framework import status
+
+@api_view(["POST"])
+def create_user(request):
+    """
+    Create a new user profile.
+    """
+    email = request.data.get("email")
+    password = request.data.get("password")
+
+    if not email or not password:
+        return Response(
+            {"error": "Email and password are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        hashed_password = make_password(password)
+        user_vector = [0] * 2049
+        UserProfile.objects.create(
+            email=email, password=hashed_password, user_vector=user_vector
+        )
+        return Response({"message": "User created successfully."}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["GET"])
 def hello(request):
