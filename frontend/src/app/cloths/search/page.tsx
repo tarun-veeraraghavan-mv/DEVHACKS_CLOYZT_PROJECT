@@ -52,7 +52,7 @@ export default function Page() {
         `${BASE_URL}/api/swipe/`,
         {
           item_id: itemId,
-          user_id: 6,
+          user_id: 7,
           direction: direction,
         }
       );

@@ -1,4 +1,5 @@
 import os
+import random
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -126,9 +127,25 @@ def swipe(request):
     user.user_vector = new_user_vector_tensor.tolist()
     user.save()
 
+    # --- Exploration vs. Exploitation ---
+    # 20% chance to explore by showing a random item
+    if random.random() < 0.2:
+        # EXPLORATION LOGIC
+        all_item_ids = set(ClothItem.objects.values_list('id', flat=True))
+        swiped_item_ids = set(user.swiped_items if user.swiped_items else [])
+        unseen_item_ids = list(all_item_ids - swiped_item_ids)
+
+        if unseen_item_ids:
+            random_item_id = random.choice(unseen_item_ids)
+            random_item = ClothItem.objects.get(id=random_item_id)
+            serializer = ClothItemSerializer(random_item)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        # If no unseen random items, fall through to exploitation.
+
+    # EXPLOITATION LOGIC (the original approach, but more robust)
     related_items = index.query(
         vector=user.user_vector,
-        top_k=10, # get more items
+        top_k=150,  # Keep existing larger top_k for a bigger candidate pool
         include_metadata=True,
     )
     print(related_items)
@@ -140,4 +157,5 @@ def swipe(request):
             # Now, I also need to return this item in the response
             return Response(match.get("metadata"), status=status.HTTP_200_OK)
 
+    # Final fallback if exploitation also fails
     return Response({"message": "No new items to recommend."}, status=status.HTTP_404_NOT_FOUND)
