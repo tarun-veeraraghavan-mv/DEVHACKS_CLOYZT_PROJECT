@@ -79,7 +79,7 @@ def get_initial_cloth_items(request):
 @api_view(["POST"])
 def swipe(request):
     direction = request.data.get("direction")
-    item_id = request.data.get("item_id")
+    item_id = int(request.data.get("item_id"))
     user_id = request.data.get("user_id")
 
     user = UserProfile.objects.filter(id=user_id).first()
@@ -90,14 +90,18 @@ def swipe(request):
     if not item:
         return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND) 
     
+    if user.swiped_items is None:
+        user.swiped_items = []
+    user.swiped_items.append(item_id)
+
     if direction not in ["left", "right"]:
         return Response({"error": "Invalid direction."}, status=status.HTTP_400_BAD_REQUEST)
     
 
     alpha = 0.15
 
-    fetch_response = index.fetch(ids=[f"item_{item_id}"])
-    item_vector_data = fetch_response.vectors[f"item_{item_id}"].values
+    fetch_response = index.fetch(ids=[f"{item_id}"])
+    item_vector_data = fetch_response.vectors[f"{item_id}"].values
 
     if direction == "right":
         item.like_count += 1
@@ -112,5 +116,13 @@ def swipe(request):
     new_user_vector_tensor = (1 - alpha) * user_vector_tensor + alpha * dir_val * item_vector_tensor
     user.user_vector = new_user_vector_tensor.tolist()
     user.save()
+
+    related_item = index.query(
+        vector=user.user_vector,
+        top_k=1,
+        include_metadata=True,
+        filter={"id": {"$nin": [str(i) for i in user.swiped_items]}},
+    )
+    print(related_item)
 
     return Response({"message": "Swipe recorded."}, status=status.HTTP_200_OK)

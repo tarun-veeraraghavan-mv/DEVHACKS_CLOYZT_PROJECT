@@ -4,6 +4,7 @@ class UserProfile(models.Model):
     email = models.TextField(unique=True)
     password = models.TextField(max_length=100)
     user_vector = models.JSONField()
+    swiped_items = models.JSONField(default=list)
 
 class ClothItem(models.Model):
     name = models.CharField(max_length=100)
