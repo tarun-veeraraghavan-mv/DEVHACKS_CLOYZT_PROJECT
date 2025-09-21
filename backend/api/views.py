@@ -101,4 +101,11 @@ def swipe(request):
 
     if direction == "right":
         item.likes += 1
-        return (1 - alpha) * user.user_vector + alpha * direction * item_vector
+        dir_val = 1
+    else:
+        item.dislikes += 1
+        dir_val = -1
+
+    user.user_vector = (1 - alpha) * user.user_vector + alpha * dir_val * item_vector
+
+    return Response({"message": "Swipe recorded."}, status=status.HTTP_200_OK)

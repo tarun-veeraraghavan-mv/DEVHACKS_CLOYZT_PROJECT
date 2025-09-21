@@ -1,34 +1,50 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { useUser } from "../UserContext"; // Import useUser
 
 export default function CreateUserPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
   const router = useRouter();
+  const { user, setUser } = useUser();
+
+  useEffect(() => {
+    if (user) {
+      router.push("/cloths/search");
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
+    setMessage("");
 
     try {
-      const res = await axios.post('http://127.0.0.1:8000/api/create-user/', {
+      const res = await axios.post("http://127.0.0.1:8000/api/create-user/", {
         email,
         password,
       });
 
+      // Assuming the API returns user data including an ID upon successful creation/login
+      const userData = {
+        id: res.data.id, // Adjust according to your API response
+        email: email,
+        password: password, // Storing password in context is generally not recommended for security
+      };
+      setUser(userData); // Set user in context
+
       setMessage(res.data.message);
-      setEmail('');
-      setPassword('');
-      router.push('/cloths/search');
+      setEmail("");
+      setPassword("");
+      router.push("/cloths/search");
     } catch (error: any) {
       if (error.response) {
-        setMessage(error.response.data.error || 'Something went wrong.');
+        setMessage(error.response.data.error || "Something went wrong.");
       } else {
-        setMessage('An error occurred.');
+        setMessage("An error occurred.");
       }
     }
   };
