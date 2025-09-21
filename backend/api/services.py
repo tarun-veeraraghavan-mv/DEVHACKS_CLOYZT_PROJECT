@@ -3,6 +3,7 @@ from transformers import CLIPModel, CLIPProcessor
 from PIL import Image
 import requests
 from io import BytesIO
+import numpy as np
 
 # Total vector dimension = Name (512) + Image (512) + Brand (512) + Colors (512) + Price (1) = 2049 
 
@@ -44,3 +45,16 @@ def image_to_vector(image_url: str):
     # Normalize and convert to list
     vector = embedding[0] / embedding[0].norm(p=2)
     return vector.tolist()
+
+def float_to_vector(price_value: float):
+    """
+    Convert a float value (e.g., price) into a single-element vector.
+    """
+    min_price = 0.0  
+    max_price = 689.0
+
+    # Normalize the price using min-max scaling
+    normalized_price = (price_value - min_price) / (max_price - min_price)
+
+    # Convert the normalized price to a 1D numpy array (vector)
+    normalized_price_vector = np.array([normalized_price], dtype=np.float32)

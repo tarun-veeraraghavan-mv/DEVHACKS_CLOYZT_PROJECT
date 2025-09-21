@@ -11,6 +11,18 @@ from .serializers import ClothItemSerializer
 from django.contrib.auth.hashers import make_password
 from rest_framework import status
 
+from pinecone import Pinecone
+import os
+from langchain_pinecone import PineconeVectorStore
+
+os.environ["PINECONE_API_KEY"] = "pcsk_6JLk9t_PANwkAZxWTq36FKFwYUmphy5F1XRYcTUTskjj5nbqPwoSUnH9n35Rk4gofE8C7Y"
+
+pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
+
+index_name = "dechacks-clozyt-db"
+
+index = pc.Index(index_name)
+
 @api_view(["POST"])
 def create_user(request):
     """
@@ -64,3 +76,29 @@ def get_initial_cloth_items(request):
     serializer = ClothItemSerializer(items, many=True)
     return Response(serializer.data)
 
+@api_view(["POST"])
+def swipe(request):
+    direction = request.data.get("direction")
+    item_id = request.data.get("item_id")
+    user_id = request.data.get("user_id")
+
+    user = UserProfile.objects.filter(id=user_id).first()
+    if not user:
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    item = ClothItem.objects.filter(id=item_id).first()
+    if not item:
+        return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND) 
+    
+    if direction not in ["left", "right"]:
+        return Response({"error": "Invalid direction."}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+    alpha = 0.15
+
+    fetch_response = index.fetch(ids=[f"item_{item_id}"])
+    item_vector = fetch_response.vectors[f"item_{item_id}"]
+
+    if direction == "right":
+        item.likes += 1
+        return (1 - alpha) * user.user_vector + alpha * direction * item_vector

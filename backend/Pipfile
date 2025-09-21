@@ -11,6 +11,8 @@ pillow = "*"
 torchvision = "*"
 transformers = "*"
 django-cors-headers = "*"
+pinecone = "*"
+langchain-pinecone = "*"
 
 [dev-packages]
 
