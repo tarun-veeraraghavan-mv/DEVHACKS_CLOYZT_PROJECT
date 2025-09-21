@@ -1,0 +1,38 @@
+# Environment variables
+.env
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+venv/
+# Pipenv specific (if virtual env is inside project)
+Pipfile.venv
+
+# Editor/IDE specific
+.vscode/
+.idea/
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Logs
+*.log
+
+# Database
+db.sqlite3
+
+# macOS specific
+.DS_Store
+
+deploy.zip
