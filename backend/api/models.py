@@ -1,5 +1,10 @@
 from django.db import models
 
+class UserProfile(models.Model):
+    email = models.TextField(unique=True)
+    password = models.TextField(max_length=100)
+    user_vector = models.JSONField()
+
 class ClothItem(models.Model):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)

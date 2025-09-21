@@ -4,6 +4,8 @@ from PIL import Image
 import requests
 from io import BytesIO
 
+# Total vector dimension = Name (512) + Image (512) + Brand (512) + Colors (512) + Price (1) = 2049 
+
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
